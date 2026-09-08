@@ -1,0 +1,40 @@
+[90m= [39m[34;4mApp\Models\User[39;24m {#8298
+    [34mid[39m: [32m"[39m[32m01m1z81efajx0xv757t91qj0mv[39m[32m"[39m,
+    [34mname[39m: [32m"[39m[32mأحمد حسين[39m[32m"[39m,
+    [34memail[39m: [32m"[39m[32mahmad@test.com[39m[32m"[39m,
+    [34memail_verified_at[39m: [32m"[39m[32m2026-09-08 00:52:40[39m[32m"[39m,
+    #[33mpassword[39m: [32m"[39m\$[32m2y[39m\$[32m12[39m\$[32m6eXRc4ZarWx.DearK8Ic7eGsvB5TH3cskPlnpe9XdYifUals5X8RW[39m[32m"[39m,
+    #[33mremember_token[39m: [32m"[39m[32mcsniY0NBFV[39m[32m"[39m,
+    [34mcreated_at[39m: [32m"[39m[32m2026-09-08 00:52:40[39m[32m"[39m,
+    [34mupdated_at[39m: [32m"[39m[32m2026-09-08 00:52:40[39m[32m"[39m,
+    [34mroles[39m: [34;4mIlluminate\Database\Eloquent\Collection[39;24m {#8356
+      [34mall[39m: [
+        [34;4mApp\Models\Role[39;24m {#7578
+          [34mid[39m: [32m"[39m[32m01m1z7eez98m339kyk6fagnw9k[39m[32m"[39m,
+          [34msection[39m: [32m"[39m[32mcontent[39m[32m"[39m,
+          [34mname[39m: [32m"[39m[32mcontent_admin[39m[32m"[39m,
+          [34mguard_name[39m: [32m"[39m[32mweb[39m[32m"[39m,
+          [34mcreated_at[39m: [32m"[39m[32m2026-09-08 00:42:18[39m[32m"[39m,
+          [34mupdated_at[39m: [32m"[39m[32m2026-09-08 00:42:18[39m[32m"[39m,
+          [34mpivot[39m: [34;4mIlluminate\Database\Eloquent\Relations\MorphPivot[39;24m {#7579
+            [34mmodel_type[39m: [32m"[39m[32mApp[39m\\[32mModels[39m\\[32mUser[39m[32m"[39m,
+            [34mmodel_id[39m: [32m"[39m[32m01m1z81efajx0xv757t91qj0mv[39m[32m"[39m,
+            [34mrole_id[39m: [32m"[39m[32m01m1z7eez98m339kyk6fagnw9k[39m[32m"[39m,
+          },
+        },
+        [34;4mApp\Models\Role[39;24m {#8879
+          [34mid[39m: [32m"[39m[32m01m1z7ef0f6eb0dsa4v9ndp7vc[39m[32m"[39m,
+          [34msection[39m: [32m"[39m[32mmarketing[39m[32m"[39m,
+          [34mname[39m: [32m"[39m[32mmarketing_Accountant[39m[32m"[39m,
+          [34mguard_name[39m: [32m"[39m[32mweb[39m[32m"[39m,
+          [34mcreated_at[39m: [32m"[39m[32m2026-09-08 00:42:18[39m[32m"[39m,
+          [34mupdated_at[39m: [32m"[39m[32m2026-09-08 00:42:18[39m[32m"[39m,
+          [34mpivot[39m: [34;4mIlluminate\Database\Eloquent\Relations\MorphPivot[39;24m {#8884
+            [34mmodel_type[39m: [32m"[39m[32mApp[39m\\[32mModels[39m\\[32mUser[39m[32m"[39m,
+            [34mmodel_id[39m: [32m"[39m[32m01m1z81efajx0xv757t91qj0mv[39m[32m"[39m,
+            [34mrole_id[39m: [32m"[39m[32m01m1z7ef0f6eb0dsa4v9ndp7vc[39m[32m"[39m,
+          },
+        },
+      ],
+    },
+  }
