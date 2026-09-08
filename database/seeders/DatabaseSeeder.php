@@ -3,23 +3,29 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // 1) إنشاء الأدوار ثم الصلاحيات بالترتيب
+        $this->call([
+            RoleSeeder::class,
+            PermissionSeeder::class,
         ]);
+
+        // 2) مستخدم تجريبي للاختبار
+        $user = User::firstOrCreate(
+            ['email' => 'test@example.com'],
+            [
+                'name' => 'Test User',
+                'password' => 'password', // سيُشفَّر تلقائيًا بسبب cast في User
+            ]
+        );
+
+        // 3) إسناد دور زائر في القسمين معًا (إجباري)
+        $user->assignSectionRole('content', 'content_Guest');
+        $user->assignSectionRole('marketing', 'marketing_Guest');
     }
 }

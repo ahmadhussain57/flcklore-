@@ -41,6 +41,14 @@ trait HasSectionRoles
         });
     }
 
+         public function hasBothSectionRoles(): bool
+        {
+    $sections = $this->roles()->pluck('section')->unique();
+
+    return $sections->contains('content')
+        && $sections->contains('marketing');
+        }
+
     /**
      * جلب دور المستخدم في قسم الفلكلور (المحتوى)
      */
@@ -56,4 +64,27 @@ trait HasSectionRoles
     {
         return $this->roles()->where('section', 'marketing')->first();
     }
+
+    /**
+ * هل المستخدم عضو فريق (ليس زائرًا فقط)؟
+ */
+public function isStaff(): bool
+{
+    return $this->hasAnyRole([
+        'content_admin',
+        'content_Reviewer',
+        'content_author',
+        'marketing_admin',
+        'marketing_Accountant',
+        'marketing_Specialist',
+    ]);
+}
+
+/**
+ * هل المستخدم زائر فقط في النظام؟
+ */
+public function isGuestOnly(): bool
+{
+    return $this->hasBothSectionRoles() && ! $this->isStaff();
+}
 }

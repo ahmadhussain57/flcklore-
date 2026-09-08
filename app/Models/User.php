@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Notifications\Notifiable;
 use App\Traits\HasSectionRoles;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\RoleUpgradeRequest;
 
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
@@ -20,6 +22,7 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable,HasUlids ,HasRoles,HasSectionRoles;
     protected $fillable = ['name','email','password'];
+    
     /**
      * Get the attributes that should be cast.
      *
@@ -32,4 +35,9 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function roleUpgradeRequests(): HasMany
+{
+    return $this->hasMany(RoleUpgradeRequest::class);
+}
 }
