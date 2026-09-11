@@ -1,6 +1,12 @@
-FROM php:8.3-fpm
+# ============================================
+# Folklore - Dockerfile للإنتاج على Render
+# ============================================
 
-# تثبيت الحزم المطلوبة
+FROM php:8.3-cli
+
+# ============================================
+# 1. تثبيت الحزم الأساسية
+# ============================================
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -13,38 +19,58 @@ RUN apt-get update && apt-get install -y \
     unzip \
     nodejs \
     npm \
-    nginx \
-    supervisor \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# تثبيت امتدادات PHP
+# ============================================
+# 2. تثبيت إضافات PHP
+# ============================================
 RUN docker-php-ext-install pdo_pgsql pgsql mbstring exif pcntl bcmath gd zip
 
-# تثبيت Composer
+# ============================================
+# 3. تثبيت Composer
+# ============================================
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# إعداد مجلد العمل
+# ============================================
+# 4. إعداد مجلد العمل
+# ============================================
 WORKDIR /var/www/html
 
-# نسخ ملفات المشروع
+# ============================================
+# 5. نسخ ملفات المشروع
+# ============================================
 COPY . .
 
-# تثبيت اعتماديات Composer (بدون dev)
+# ============================================
+# 6. تثبيت اعتماديات Composer
+# ============================================
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
-# تثبيت اعتماديات NPM وبناء الأصول
+# ============================================
+# 7. بناء أصول Vite
+# ============================================
 RUN npm install && npm run build
 
-# إعداد الصلاحيات
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+# ============================================
+# 8. الصلاحيات
+# ============================================
+RUN chmod -R 777 storage bootstrap/cache
 
-# نسخ إعدادات Nginx
-COPY docker/nginx.conf /etc/nginx/sites-available/default
+# ============================================
+# 9. كشف المنفذ (Render يستخدم 10000 افتراضياً)
+# ============================================
+EXPOSE 10000
 
-# نسخ سكربت التشغيل
-COPY docker/start.sh /usr/local/bin/start.sh
-RUN chmod +x /usr/local/bin/start.sh
-
-EXPOSE 80
-
-CMD ["/usr/local/bin/start.sh"]
+# ============================================
+# 10. أمر التشغيل
+# ============================================
+# ✅ أمر واحد بسيط لا ينتهي (php artisan serve عملية مستمرة)
+CMD php artisan migrate --force && \
+    php artisan db:seed --force && \
+    php artisan permission:cache-reset && \
+    php artisan storage:link && \
+    php artisan config:cache && \
+    php artisan route:cache && \
+    php artisan view:cache && \
+    php artisan serve --host=0.0.0.0 --port=${PORT:-10000}
