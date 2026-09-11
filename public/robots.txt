@@ -1,2 +1,15 @@
 User-agent: *
-Disallow:
+Allow: /
+
+# منع الوصول للمناطق الإدارية
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /products
+Disallow: /content
+Disallow: /review
+Disallow: /notifications
+Disallow: /profile
+Disallow: /role-upgrade
+
+# Sitemap
+Sitemap: https://your-domain.com/sitemap.xml

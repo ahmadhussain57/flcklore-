@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreRoleUpgradeRequest;
 use App\Models\RoleUpgradeRequest;
+use App\Models\User;
+use App\Notifications\RoleUpgradeRequested;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -54,7 +56,8 @@ class RoleUpgradeRequestController extends Controller
             return back()->with('error', 'لديك طلب ترقية معلّق لهذا القسم بالفعل.');
         }
 
-        RoleUpgradeRequest::create([
+        // ✅ إنشاء الطلب وتخزينه في متغير
+        $upgradeRequest = RoleUpgradeRequest::create([
             'user_id' => $user->id,
             'section' => $section,
             'requested_role' => $requestedRole,
@@ -62,8 +65,30 @@ class RoleUpgradeRequestController extends Controller
             'status' => 'pending',
         ]);
 
+        // ✅ إرسال إشعار لمديري القسم المطلوب
+        $this->notifySectionAdmins($upgradeRequest, $section);
+
         return redirect()
             ->route('home')
             ->with('success', 'تم إرسال طلب الترقية بنجاح. بانتظار مراجعة المدير.');
+    }
+
+    /**
+     * ✅ إرسال إشعار لمديري القسم (content_admin أو marketing_admin)
+     */
+    private function notifySectionAdmins(RoleUpgradeRequest $upgradeRequest, string $section): void
+    {
+        // تحديد دور المدير حسب القسم
+        $adminRole = $section === 'content' ? 'content_admin' : 'marketing_admin';
+
+        // جلب جميع مديري القسم
+        $admins = User::whereHas('roles', function ($query) use ($adminRole) {
+            $query->where('name', $adminRole);
+        })->get();
+
+        // إرسال الإشعار لكل مدير
+        foreach ($admins as $admin) {
+            $admin->notify(new RoleUpgradeRequested($upgradeRequest));
+        }
     }
 }

@@ -1,3 +1,32 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* ✅ منع التمرير الأفقي على الجوال */
+html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+}
+
+/* ✅ تحسين النص العربي على الجوال */
+body {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+}
+
+/* ✅ تحسين الروابط القابلة للنقر */
+a, button {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* ✅ الصور لا تتجاوز العرض */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* ✅ تحسين الجداول على الجوال */
+@media (max-width: 640px) {
+    table {
+        font-size: 0.875rem;
+    }
+}

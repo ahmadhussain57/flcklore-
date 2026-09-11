@@ -40,4 +40,33 @@ class User extends Authenticatable
 {
     return $this->hasMany(RoleUpgradeRequest::class);
 }
+
+public function contents(): HasMany
+{
+    return $this->hasMany(Content::class);
+}
+public function comments(): HasMany
+{
+    return $this->hasMany(Comment::class);
+}
+
+public function likes(): HasMany
+{
+    return $this->hasMany(Like::class);
+}
+
+
+
+
+public function products(): HasMany
+{
+    return $this->hasMany(Product::class);
+}
+
+public function productReviews(): HasMany
+{
+    return $this->hasMany(Product::class, 'reviewed_by');
+}
+
+
 }

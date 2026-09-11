@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\RoleUpgradeRequest;
+use App\Notifications\RoleUpgradeReviewed;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -43,6 +44,9 @@ class RoleUpgradeReviewController extends Controller
             return back()->with('error', 'هذا الطلب تمت معالجته مسبقًا.');
         }
 
+        // ✅ حفظ المستخدم صاحب الطلب قبل المعالجة
+        $applicant = $roleUpgradeRequest->user;
+
         DB::transaction(function () use ($roleUpgradeRequest) {
             $roleUpgradeRequest->user->assignSectionRole(
                 $roleUpgradeRequest->section,
@@ -55,6 +59,9 @@ class RoleUpgradeReviewController extends Controller
                 'reviewed_at' => now(),
             ]);
         });
+
+        // ✅ إرسال إشعار للمستخدم (بعد نجاح المعاملة)
+        $applicant->notify(new RoleUpgradeReviewed($roleUpgradeRequest));
 
         return back()->with('success', 'تمت الموافقة على الطلب وتعيين الدور.');
     }
@@ -77,6 +84,9 @@ class RoleUpgradeReviewController extends Controller
             'reviewed_by' => Auth::id(),
             'reviewed_at' => now(),
         ]);
+
+        // ✅ إرسال إشعار للمستخدم بالرفض
+        $roleUpgradeRequest->user->notify(new RoleUpgradeReviewed($roleUpgradeRequest));
 
         return back()->with('success', 'تم رفض الطلب.');
     }
