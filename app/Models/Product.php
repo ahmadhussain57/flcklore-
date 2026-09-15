@@ -34,6 +34,7 @@ class Product extends Model
         'title',
         'slug',
         'short_description',
+        'keywords', 
         'description',
         'type',
         'price',
@@ -257,5 +258,54 @@ class Product extends Model
     {
         $image = $this->media->where('media_type', 'image')->first();
         return $image?->path;
+    }
+
+
+        // ======================
+    // علاقات المحاسبة والمخزون
+    // ======================
+
+    /**
+     * حركات المادة (دخول/خروج)
+     */
+    public function materialMovements(): HasMany
+    {
+        return $this->hasMany(MaterialMovement::class)->orderByDesc('movement_date');
+    }
+
+    /**
+     * عناصر الفواتير المرتبطة بهذا المنتج
+     */
+    public function invoiceItems(): HasMany
+    {
+        return $this->hasMany(InvoiceItem::class);
+    }
+
+    /**
+     * آخر حركة للمادة
+     */
+    public function lastMovement(): ?MaterialMovement
+    {
+        return $this->materialMovements()->first();
+    }
+
+    /**
+     * إجمالي الكميات المُباعة
+     */
+    public function getTotalSoldAttribute(): float
+    {
+        return (float) $this->materialMovements()
+            ->where('movement_type', MaterialMovement::TYPE_SALE)
+            ->sum('quantity');
+    }
+
+    /**
+     * إجمالي الكميات المُشتراة
+     */
+    public function getTotalPurchasedAttribute(): float
+    {
+        return (float) $this->materialMovements()
+            ->where('movement_type', MaterialMovement::TYPE_PURCHASE)
+            ->sum('quantity');
     }
 }

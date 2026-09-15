@@ -5,6 +5,11 @@
     <form method="POST" action="{{ route('login') }}">
         @csrf
 
+        {{-- ✅ redirect_to (للعودة إلى الصفحة السابقة بعد تسجيل الدخول) --}}
+        @if(request('redirect_to'))
+            <input type="hidden" name="redirect_to" value="{{ request('redirect_to') }}">
+        @endif
+
         <!-- Email Address -->
         <div>
             <x-input-label for="email" :value="__('Email')" />

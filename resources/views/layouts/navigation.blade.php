@@ -21,6 +21,20 @@
                             $isContentReviewer = $user->hasAnyRole(['content_Reviewer', 'content_admin']);
                             $isMarketingReviewer = $user->hasRole('marketing_admin');
                             $isAdmin = $user->hasAnyRole(['content_admin', 'marketing_admin']);
+                            $canManageOrders = $user->hasAnyRole(['marketing_admin', 'marketing_Accountant']);
+
+                            // ✅ عدّادات التعليقات المعلقة
+                            $pendingContentComments = $isContentReviewer
+                                ? \App\Models\Comment::where('commentable_type', \App\Models\Content::class)
+                                    ->where('status', \App\Models\Comment::STATUS_PENDING)
+                                    ->count()
+                                : 0;
+
+                            $pendingProductComments = $isMarketingReviewer
+                                ? \App\Models\Comment::where('commentable_type', \App\Models\Product::class)
+                                    ->where('status', \App\Models\Comment::STATUS_PENDING)
+                                    ->count()
+                                : 0;
                         @endphp
 
                         {{-- الرئيسية --}}
@@ -28,7 +42,7 @@
                             🏠 {{ __('الرئيسية') }}
                         </x-nav-link>
 
-                        {{-- ✅ المقالات (للجميع - جديد) --}}
+                        {{-- المقالات --}}
                         <x-nav-link :href="route('articles.index')" :active="request()->routeIs('articles.*')" class="text-sm">
                             📚 {{ __('المقالات') }}
                         </x-nav-link>
@@ -45,7 +59,7 @@
                             </x-nav-link>
                         @endif
 
-                        {{-- ✅ محتوياتي (للمؤلفين فقط - كان اسمه "المحتوى") --}}
+                        {{-- محتوياتي --}}
                         @if($isContentStaff)
                             <x-nav-link :href="route('content.index')" :active="request()->routeIs('content.index') || request()->routeIs('content.create') || request()->routeIs('content.edit') || request()->routeIs('content.show')" class="text-sm">
                                 📝 {{ __('محتوياتي') }}
@@ -59,7 +73,7 @@
                             </x-nav-link>
                         @endif
 
-                        {{-- المنتجات --}}
+                        {{-- منتجاتي --}}
                         @if($isMarketingStaff)
                             <x-nav-link :href="route('products.index')" :active="request()->routeIs('products.index') || request()->routeIs('products.create') || request()->routeIs('products.edit') || request()->routeIs('products.show')" class="text-sm">
                                 📦 {{ __('منتجاتي') }}
@@ -73,11 +87,86 @@
                             </x-nav-link>
                         @endif
 
-                        {{-- تصنيفات المنتجات --}}
+                        {{-- التصنيفات --}}
                         @if($isMarketingReviewer)
                             <x-nav-link :href="route('products.categories.index')" :active="request()->routeIs('products.categories.*')" class="text-sm">
                                 🏷️ {{ __('التصنيفات') }}
                             </x-nav-link>
+                        @endif
+
+                        {{-- ✅ مراجعة تعليقات المحتوى --}}
+                        @if($isContentReviewer)
+                            <x-nav-link :href="route('admin.comments.content.index')"
+                                        :active="request()->routeIs('admin.comments.content.*') || request()->routeIs('admin.comments.show')"
+                                        class="text-sm">
+                                💬 {{ __('تعليقات المحتوى') }}
+                                @if($pendingContentComments > 0)
+                                    <span class="ms-1 px-1.5 py-0.5 text-xs font-bold text-white bg-red-500 rounded-full">
+                                        {{ $pendingContentComments > 99 ? '99+' : $pendingContentComments }}
+                                    </span>
+                                @endif
+                            </x-nav-link>
+                        @endif
+
+                        {{-- ✅ مراجعة تعليقات المنتجات --}}
+                        @if($isMarketingReviewer)
+                            <x-nav-link :href="route('admin.comments.product.index')"
+                                        :active="request()->routeIs('admin.comments.product.*')"
+                                        class="text-sm">
+                                💬 {{ __('تعليقات المنتجات') }}
+                                @if($pendingProductComments > 0)
+                                    <span class="ms-1 px-1.5 py-0.5 text-xs font-bold text-white bg-red-500 rounded-full">
+                                        {{ $pendingProductComments > 99 ? '99+' : $pendingProductComments }}
+                                    </span>
+                                @endif
+                            </x-nav-link>
+                        @endif
+
+                        {{-- ✅ قائمة المحاسبة المنسدلة --}}
+                        @if($canManageOrders)
+                            <div class="relative" x-data="{ accountOpen: false }" @click.away="accountOpen = false">
+                                <button @click="accountOpen = !accountOpen"
+                                        class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition
+                                               {{ request()->routeIs('accounting.*') || request()->routeIs('admin.orders.*') ? 'border-indigo-400 dark:border-indigo-600 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700' }}">
+                                    📊 {{ __('المحاسبة') }}
+                                    <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                    </svg>
+                                </button>
+
+                                <div x-show="accountOpen"
+                                     x-transition:enter="transition ease-out duration-200"
+                                     x-transition:enter-start="opacity-0 scale-95"
+                                     x-transition:enter-end="opacity-100 scale-100"
+                                     x-transition:leave="transition ease-in duration-75"
+                                     x-transition:leave-start="opacity-100 scale-100"
+                                     x-transition:leave-end="opacity-0 scale-95"
+                                     class="absolute left-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden"
+                                     style="display: none;">
+                                    <div class="py-1">
+                                        <a href="{{ route('admin.orders.index') }}"
+                                           class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition {{ request()->routeIs('admin.orders.*') ? 'bg-gray-50 dark:bg-gray-700/50' : '' }}">
+                                            📦 {{ __('الطلبات') }}
+                                        </a>
+                                        <a href="{{ route('accounting.journal-entries.index') }}"
+                                           class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition {{ request()->routeIs('accounting.journal-entries.*') ? 'bg-gray-50 dark:bg-gray-700/50' : '' }}">
+                                            📒 {{ __('سندات القيد') }}
+                                        </a>
+                                        <a href="{{ route('accounting.invoices.index') }}"
+                                           class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition {{ request()->routeIs('accounting.invoices.*') ? 'bg-gray-50 dark:bg-gray-700/50' : '' }}">
+                                            🧾 {{ __('الفواتير') }}
+                                        </a>
+                                        <a href="{{ route('accounting.accounts.index') }}"
+                                           class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition {{ request()->routeIs('accounting.accounts.*') ? 'bg-gray-50 dark:bg-gray-700/50' : '' }}">
+                                            💰 {{ __('أرصدة الحسابات') }}
+                                        </a>
+                                        <a href="{{ route('accounting.reports.index') }}"
+                                           class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition {{ request()->routeIs('accounting.reports.*') ? 'bg-gray-50 dark:bg-gray-700/50' : '' }}">
+                                            📊 {{ __('التقارير') }}
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
                         @endif
 
                         {{-- طلبات الترقية --}}
@@ -87,7 +176,7 @@
                             </x-nav-link>
                         @endif
                     @else
-                        {{-- ✅ للزوار غير المسجلين --}}
+                        {{-- للزوار غير المسجلين --}}
                         <x-nav-link :href="route('home')" :active="request()->routeIs('home')" class="text-sm">
                             🏠 {{ __('الرئيسية') }}
                         </x-nav-link>
@@ -145,6 +234,44 @@
                         </x-dropdown-link>
                     </x-slot>
                 </x-dropdown>
+
+                @auth
+                    @php
+                        $navCart = auth()->user()->cart;
+                        $navCartCount = $navCart ? $navCart->total_items : 0;
+                        $unreadMessages = auth()->user()->unreadMessagesCount();
+                    @endphp
+
+                    {{-- 🛒 أيقونة السلة --}}
+                    <a href="{{ route('cart.index') }}"
+                       class="relative p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                       title="{{ __('السلة') }}">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                        @if($navCartCount > 0)
+                            <span class="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-indigo-600 rounded-full transform translate-x-1/4 -translate-y-1/4">
+                                {{ $navCartCount > 99 ? '99+' : $navCartCount }}
+                            </span>
+                        @endif
+                    </a>
+
+                    {{-- 💬 أيقونة الرسائل --}}
+                    <a href="{{ route('messages.index') }}"
+                       class="relative p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                       title="{{ __('الرسائل') }}">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                        </svg>
+                        @if($unreadMessages > 0)
+                            <span class="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-red-500 rounded-full transform translate-x-1/4 -translate-y-1/4">
+                                {{ $unreadMessages > 99 ? '99+' : $unreadMessages }}
+                            </span>
+                        @endif
+                    </a>
+                @endauth
 
                 {{-- 🔔 أيقونة الإشعارات --}}
                 @auth
@@ -266,6 +393,28 @@
                                 👤 {{ __('الملف الشخصي') }}
                             </x-dropdown-link>
 
+                            <x-dropdown-link :href="route('cart.index')">
+                                🛒 {{ __('السلة') }}
+                                @if($navCartCount > 0)
+                                    <span class="ms-2 px-2 py-0.5 text-xs font-bold text-white bg-indigo-600 rounded-full">
+                                        {{ $navCartCount }}
+                                    </span>
+                                @endif
+                            </x-dropdown-link>
+
+                            <x-dropdown-link :href="route('orders.index')">
+                                📦 {{ __('طلباتي') }}
+                            </x-dropdown-link>
+
+                            <x-dropdown-link :href="route('messages.index')">
+                                💬 {{ __('الرسائل') }}
+                                @if($unreadMessages > 0)
+                                    <span class="ms-2 px-2 py-0.5 text-xs font-bold text-white bg-red-500 rounded-full">
+                                        {{ $unreadMessages }}
+                                    </span>
+                                @endif
+                            </x-dropdown-link>
+
                             <x-dropdown-link :href="route('role-upgrade.create')">
                                 ⬆️ {{ __('طلب ترقية') }}
                             </x-dropdown-link>
@@ -280,12 +429,12 @@
                         </x-slot>
                     </x-dropdown>
                 @else
-                    {{-- Guest Links --}}
-                    <a href="{{ route('login') }}" class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition">
+                    {{-- Guest Links (Desktop) --}}
+                    <a href="{{ route('login', ['redirect_to' => url()->current()]) }}" class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition">
                         {{ __('تسجيل الدخول') }}
                     </a>
                     @if (Route::has('register'))
-                        <a href="{{ route('register') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-full transition">
+                        <a href="{{ route('register', ['redirect_to' => url()->current()]) }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-full transition">
                             {{ __('إنشاء حساب') }}
                         </a>
                     @endif
@@ -295,6 +444,19 @@
             <!-- Hamburger (Mobile) -->
             <div class="-me-2 flex items-center sm:hidden gap-2">
                 @auth
+                    @if($navCartCount > 0)
+                        <a href="{{ route('cart.index') }}"
+                           class="relative p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                            <span class="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-indigo-600 rounded-full transform translate-x-1/4 -translate-y-1/4">
+                                {{ $navCartCount > 99 ? '99+' : $navCartCount }}
+                            </span>
+                        </a>
+                    @endif
+
                     <div class="relative" x-data="notificationBell()" x-init="init()">
                         <button @click="open = !open"
                                 class="relative p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
@@ -366,13 +528,26 @@
                     $isContentReviewer = $user->hasAnyRole(['content_Reviewer', 'content_admin']);
                     $isMarketingReviewer = $user->hasRole('marketing_admin');
                     $isAdmin = $user->hasAnyRole(['content_admin', 'marketing_admin']);
+                    $canManageOrders = $user->hasAnyRole(['marketing_admin', 'marketing_Accountant']);
+
+                    // ✅ عدّادات التعليقات المعلقة (للموبايل)
+                    $pendingContentComments = $isContentReviewer
+                        ? \App\Models\Comment::where('commentable_type', \App\Models\Content::class)
+                            ->where('status', \App\Models\Comment::STATUS_PENDING)
+                            ->count()
+                        : 0;
+
+                    $pendingProductComments = $isMarketingReviewer
+                        ? \App\Models\Comment::where('commentable_type', \App\Models\Product::class)
+                            ->where('status', \App\Models\Comment::STATUS_PENDING)
+                            ->count()
+                        : 0;
                 @endphp
 
                 <x-responsive-nav-link :href="route('home')" :active="request()->routeIs('home')">
                     🏠 {{ __('الرئيسية') }}
                 </x-responsive-nav-link>
 
-                {{-- ✅ المقالات (جوال) --}}
                 <x-responsive-nav-link :href="route('articles.index')" :active="request()->routeIs('articles.*')">
                     📚 {{ __('المقالات') }}
                 </x-responsive-nav-link>
@@ -381,13 +556,28 @@
                     🛍️ {{ __('المتجر') }}
                 </x-responsive-nav-link>
 
+                <x-responsive-nav-link :href="route('cart.index')" :active="request()->routeIs('cart.*')">
+                    🛒 {{ __('السلة') }} @if($navCartCount > 0) ({{ $navCartCount }}) @endif
+                </x-responsive-nav-link>
+
+                <x-responsive-nav-link :href="route('orders.index')" :active="request()->routeIs('orders.*')">
+                    📦 {{ __('طلباتي') }}
+                </x-responsive-nav-link>
+
+                <x-responsive-nav-link :href="route('messages.index')" :active="request()->routeIs('messages.*')">
+                    💬 {{ __('الرسائل') }} @if($unreadMessages > 0) ({{ $unreadMessages }}) @endif
+                </x-responsive-nav-link>
+
+                <x-responsive-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">
+                    🔔 {{ __('الإشعارات') }}
+                </x-responsive-nav-link>
+
                 @if($isContentStaff || $isMarketingStaff)
                     <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         📊 {{ __('لوحة التحكم') }}
                     </x-responsive-nav-link>
                 @endif
 
-                {{-- ✅ محتوياتي (جوال) --}}
                 @if($isContentStaff)
                     <x-responsive-nav-link :href="route('content.index')" :active="request()->routeIs('content.*')">
                         📝 {{ __('محتوياتي') }}
@@ -416,15 +606,66 @@
                     </x-responsive-nav-link>
                 @endif
 
+                {{-- ✅ مراجعة تعليقات المحتوى (موبايل) --}}
+                @if($isContentReviewer)
+                    <x-responsive-nav-link :href="route('admin.comments.content.index')"
+                                           :active="request()->routeIs('admin.comments.content.*') || request()->routeIs('admin.comments.show')">
+                        💬 {{ __('تعليقات المحتوى') }}
+                        @if($pendingContentComments > 0)
+                            <span class="ms-1 px-1.5 py-0.5 text-xs font-bold text-white bg-red-500 rounded-full">
+                                {{ $pendingContentComments > 99 ? '99+' : $pendingContentComments }}
+                            </span>
+                        @endif
+                    </x-responsive-nav-link>
+                @endif
+
+                {{-- ✅ مراجعة تعليقات المنتجات (موبايل) --}}
+                @if($isMarketingReviewer)
+                    <x-responsive-nav-link :href="route('admin.comments.product.index')"
+                                           :active="request()->routeIs('admin.comments.product.*')">
+                        💬 {{ __('تعليقات المنتجات') }}
+                        @if($pendingProductComments > 0)
+                            <span class="ms-1 px-1.5 py-0.5 text-xs font-bold text-white bg-red-500 rounded-full">
+                                {{ $pendingProductComments > 99 ? '99+' : $pendingProductComments }}
+                            </span>
+                        @endif
+                    </x-responsive-nav-link>
+                @endif
+
+                {{-- ✅ قسم المحاسبة (جوال) --}}
+                @if($canManageOrders)
+                    <div class="pt-4 pb-2 border-t border-gray-200 dark:border-gray-600">
+                        <div class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                            📊 {{ __('المحاسبة') }}
+                        </div>
+
+                        <x-responsive-nav-link :href="route('admin.orders.index')" :active="request()->routeIs('admin.orders.*')">
+                            📦 {{ __('الطلبات') }}
+                        </x-responsive-nav-link>
+
+                        <x-responsive-nav-link :href="route('accounting.journal-entries.index')" :active="request()->routeIs('accounting.journal-entries.*')">
+                            📒 {{ __('سندات القيد') }}
+                        </x-responsive-nav-link>
+
+                        <x-responsive-nav-link :href="route('accounting.invoices.index')" :active="request()->routeIs('accounting.invoices.*')">
+                            🧾 {{ __('الفواتير') }}
+                        </x-responsive-nav-link>
+
+                        <x-responsive-nav-link :href="route('accounting.accounts.index')" :active="request()->routeIs('accounting.accounts.*')">
+                            💰 {{ __('أرصدة الحسابات') }}
+                        </x-responsive-nav-link>
+
+                        <x-responsive-nav-link :href="route('accounting.reports.index')" :active="request()->routeIs('accounting.reports.*')">
+                            📊 {{ __('التقارير') }}
+                        </x-responsive-nav-link>
+                    </div>
+                @endif
+
                 @if($isAdmin)
                     <x-responsive-nav-link :href="route('admin.role-upgrade.index')" :active="request()->routeIs('admin.role-upgrade.*')">
                         ⬆️ {{ __('طلبات الترقية') }}
                     </x-responsive-nav-link>
                 @endif
-
-                <x-responsive-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">
-                    🔔 {{ __('الإشعارات') }}
-                </x-responsive-nav-link>
             @else
                 <x-responsive-nav-link :href="route('home')" :active="request()->routeIs('home')">
                     🏠 {{ __('الرئيسية') }}
@@ -485,12 +726,13 @@
                     </form>
                 </div>
             @else
+                {{-- Guest Links (Mobile) --}}
                 <div class="mt-3 space-y-1 px-4">
-                    <a href="{{ route('login') }}" class="block py-2 text-base font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+                    <a href="{{ route('login', ['redirect_to' => url()->current()]) }}" class="block py-2 text-base font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
                         {{ __('تسجيل الدخول') }}
                     </a>
                     @if (Route::has('register'))
-                        <a href="{{ route('register') }}" class="block py-2 text-base font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200">
+                        <a href="{{ route('register', ['redirect_to' => url()->current()]) }}" class="block py-2 text-base font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200">
                             {{ __('إنشاء حساب') }}
                         </a>
                     @endif

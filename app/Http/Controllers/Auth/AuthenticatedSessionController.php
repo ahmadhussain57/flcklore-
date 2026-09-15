@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
@@ -28,6 +29,13 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // ✅ التحقق من redirect_to
+        $redirectTo = $request->input('redirect_to');
+
+        if ($redirectTo && $this->isSafeRedirect($redirectTo)) {
+            return redirect()->to($redirectTo);
+        }
+
         return redirect()->intended(route('home', absolute: false));
     }
 
@@ -43,5 +51,23 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/');
+    }
+
+    /**
+     * ✅ التحقق من أن الرابط آمن (نفس الموقع)
+     */
+    private function isSafeRedirect(string $url): bool
+    {
+        // فقط الروابط الداخلية (تبدأ بـ APP_URL)
+        if (!Str::startsWith($url, url('/'))) {
+            return false;
+        }
+
+        // منع التوجيه لصفحات auth (لتجنب الحلقة اللانهائية)
+        if (Str::contains($url, ['/login', '/register', '/logout'])) {
+            return false;
+        }
+
+        return true;
     }
 }

@@ -76,6 +76,21 @@
                             @error('short_description') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
                         </div>
 
+                        {{-- ✅ الكلمات المفتاحية --}}
+                        <div class="mb-5">
+                            <label for="keywords" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                {{ __('الكلمات المفتاحية') }}
+                                <span class="text-xs text-gray-400">(اختياري - مفصولة بفواصل)</span>
+                            </label>
+                            <input type="text" name="keywords" id="keywords" value="{{ old('keywords', $product->keywords) }}" maxlength="500"
+                                   placeholder="مثال: تراث، فخار، حرف يدوية، تحف"
+                                   class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                💡 {{ __('تفصل بين الكلمات بفاصلة (,) — ستظهر كروابط في صفحة المنتج للبحث.') }}
+                            </p>
+                            @error('keywords') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
                         {{-- الوصف الكامل --}}
                         <div class="mb-5">
                             <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

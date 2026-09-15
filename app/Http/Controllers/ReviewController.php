@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Content;
+use App\Models\Comment;
 use App\Models\User;
 use App\Notifications\ContentApproved;
 use App\Notifications\ContentRejected;
@@ -27,6 +28,16 @@ class ReviewController extends Controller
                 ->whereDate('reviewed_at', today())
                 ->count(),
             'my_history' => Content::where('reviewed_by', Auth::id())
+                ->whereNotNull('reviewed_at')
+                ->count(),
+
+            // ✅ إحصائيات التعليقات المعلقة (للمحتوى)
+            'pending_comments' => Comment::where('status', Comment::STATUS_PENDING)
+                ->where('commentable_type', Content::class)
+                ->count(),
+
+            // ✅ إحصائيات التعليقات التي راجعها المستخدم
+            'my_comment_reviews' => Comment::where('reviewed_by', Auth::id())
                 ->whereNotNull('reviewed_at')
                 ->count(),
         ];
@@ -81,10 +92,10 @@ class ReviewController extends Controller
                 ->with('error', 'لا يمكنك الموافقة على محتوى لم تحجزه.');
         }
 
-        // ✅ حفظ المؤلف قبل النشر (لأن النسخة قد تُحذف)
+        // ✅ حفظ المؤلف قبل النشر
         $author = $content->author;
 
-        // نشر المحتوى (يُرجع المحتوى النهائي بعد النشر)
+        // نشر المحتوى
         $publishedContent = $this->publishContent($content);
 
         // ✅ إرسال إشعار للمؤلف
@@ -149,15 +160,12 @@ class ReviewController extends Controller
 
     /**
      * دالة مساعدة لنشر المحتوى
-     * تُرجع المحتوى النهائي المنشور (بعد معالجة النسخ pending_edit)
      */
     private function publishContent(Content $content): Content
     {
-        // إذا كان المحتوى هو نسخة pending_edit لمنشور سابق
         if ($content->status === Content::STATUS_PENDING_EDIT && $content->original_id) {
             $original = Content::find($content->original_id);
             if ($original) {
-                // تحديث المنشور الأصلي ببيانات النسخة الجديدة
                 $original->update([
                     'title' => $content->title,
                     'slug' => $content->slug,
@@ -169,19 +177,15 @@ class ReviewController extends Controller
                     'updated_at' => now(),
                 ]);
 
-                // تحديث التصنيفات والأوسمة في المنشور الأصلي
                 $original->categories()->sync($content->categories->pluck('id'));
                 $original->tags()->sync($content->tags->pluck('id'));
 
-                // حذف النسخة المؤقتة
                 $content->delete();
 
-                // نستمر مع المنشور الأصلي
                 $content = $original;
             }
         }
 
-        // نشر المحتوى (أصلي أو معدّل)
         $content->update([
             'status' => Content::STATUS_PUBLISHED,
             'published_at' => now(),

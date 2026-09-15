@@ -79,11 +79,12 @@ class ProductController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'short_description' => 'nullable|string|max:500',
+            'keywords' => 'nullable|string|max:500',
             'description' => 'nullable|string',
             'type' => ['required', Rule::in([Product::TYPE_PHYSICAL, Product::TYPE_DIGITAL])],
-            'price' => 'required|numeric|min:0|max:9999999.99',
-            'sale_price' => 'nullable|numeric|min:0|lt:price',
-            'stock_quantity' => 'nullable|integer|min:0',
+            'price' => 'required|numeric|min:1|max:9999999.99',
+            'sale_price' => 'nullable|numeric|min:1|lt:price',
+            'stock_quantity' => 'nullable|integer|min:1',  // ✅
             'sku' => 'nullable|string|max:100|unique:products,sku',
             'categories' => 'nullable|array',
             'categories.*' => 'exists:product_categories,id',
@@ -91,11 +92,18 @@ class ProductController extends Controller
             'media.*' => 'file|mimes:jpg,jpeg,png,gif,webp,svg,mp4,webm,ogg,mov|max:51200',
         ], [
             'sale_price.lt' => 'سعر التخفيض يجب أن يكون أقل من السعر الأصلي.',
+            'price.min'     => 'يجب أن يكون السعر 1 على الأقل.',
+            'sale_price.min'=> 'يجب أن يكون سعر التخفيض 1 على الأقل.',
+            'stock_quantity.min' => 'يجب أن تكون الكمية المتوفرة 1 على الأقل.',
         ]);
 
+        // ✅ التحقق من المنتجات المادية
         if ($validated['type'] === Product::TYPE_PHYSICAL) {
             $request->validate([
-                'stock_quantity' => 'required|integer|min:0',
+                'stock_quantity' => 'required|integer|min:1',  // ✅ min:1
+            ], [
+                'stock_quantity.required' => 'يجب تحديد الكمية المتوفرة للمنتجات المادية.',
+                'stock_quantity.min'      => 'يجب أن تكون الكمية المتوفرة 1 على الأقل للمنتجات المادية.',
             ]);
         } else {
             $validated['stock_quantity'] = null;
@@ -113,6 +121,7 @@ class ProductController extends Controller
             'title' => $validated['title'],
             'slug' => $slug,
             'short_description' => $validated['short_description'] ?? null,
+            'keywords' => $validated['keywords'] ?? null,
             'description' => $validated['description'] ?? null,
             'type' => $validated['type'],
             'price' => $validated['price'],
@@ -185,11 +194,12 @@ class ProductController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'short_description' => 'nullable|string|max:500',
+            'keywords' => 'nullable|string|max:500',
             'description' => 'nullable|string',
             'type' => ['required', Rule::in([Product::TYPE_PHYSICAL, Product::TYPE_DIGITAL])],
-            'price' => 'required|numeric|min:0|max:9999999.99',
-            'sale_price' => 'nullable|numeric|min:0|lt:price',
-            'stock_quantity' => 'nullable|integer|min:0',
+            'price' => 'required|numeric|min:1|max:9999999.99',  // ✅ min:1
+            'sale_price' => 'nullable|numeric|min:1|lt:price',   // ✅ min:1
+            'stock_quantity' => 'nullable|integer|min:1',         // ✅ min:1
             'sku' => ['nullable', 'string', 'max:100', Rule::unique('products', 'sku')->ignore($product->id)],
             'categories' => 'nullable|array',
             'categories.*' => 'exists:product_categories,id',
@@ -199,11 +209,18 @@ class ProductController extends Controller
             'delete_media.*' => 'exists:product_media,id',
         ], [
             'sale_price.lt' => 'سعر التخفيض يجب أن يكون أقل من السعر الأصلي.',
+            'price.min'     => 'يجب أن يكون السعر 1 على الأقل.',
+            'sale_price.min'=> 'يجب أن يكون سعر التخفيض 1 على الأقل.',
+            'stock_quantity.min' => 'يجب أن تكون الكمية المتوفرة 1 على الأقل.',
         ]);
 
+        // ✅ التحقق من المنتجات المادية
         if ($validated['type'] === Product::TYPE_PHYSICAL) {
             $request->validate([
-                'stock_quantity' => 'required|integer|min:0',
+                'stock_quantity' => 'required|integer|min:1',  // ✅ min:1
+            ], [
+                'stock_quantity.required' => 'يجب تحديد الكمية المتوفرة للمنتجات المادية.',
+                'stock_quantity.min'      => 'يجب أن تكون الكمية المتوفرة 1 على الأقل للمنتجات المادية.',
             ]);
         } else {
             $validated['stock_quantity'] = null;
@@ -223,6 +240,7 @@ class ProductController extends Controller
                 'title' => $validated['title'],
                 'slug' => $slug,
                 'short_description' => $validated['short_description'] ?? null,
+                'keywords' => $validated['keywords'] ?? null,
                 'description' => $validated['description'] ?? null,
                 'type' => $validated['type'],
                 'price' => $validated['price'],
@@ -238,7 +256,6 @@ class ProductController extends Controller
                 $newProduct->categories()->sync($validated['categories']);
             }
 
-            // نسخ الوسائط الحالية إلى النسخة الجديدة
             foreach ($product->media as $oldMedia) {
                 $newProduct->media()->create([
                     'media_type' => $oldMedia->media_type,
@@ -251,12 +268,10 @@ class ProductController extends Controller
                 ]);
             }
 
-            // رفع وسائط جديدة
             if ($request->hasFile('media')) {
                 $this->uploadMedia($request->file('media'), $newProduct);
             }
 
-            // ✅ إرسال إشعار لمديري التسويق بوجود تعديل جديد
             $this->notifyReviewers(new ProductSubmittedForReview($newProduct));
 
             return redirect()
@@ -268,6 +283,7 @@ class ProductController extends Controller
         $product->update([
             'title' => $validated['title'],
             'short_description' => $validated['short_description'] ?? null,
+            'keywords' => $validated['keywords'] ?? null,
             'description' => $validated['description'] ?? null,
             'type' => $validated['type'],
             'price' => $validated['price'],
@@ -281,7 +297,6 @@ class ProductController extends Controller
 
         $product->categories()->sync($validated['categories'] ?? []);
 
-        // حذف الوسائط المحددة
         if (!empty($validated['delete_media'])) {
             $mediaToDelete = ProductMedia::whereIn('id', $validated['delete_media'])
                 ->where('product_id', $product->id)
@@ -293,7 +308,6 @@ class ProductController extends Controller
             }
         }
 
-        // رفع وسائط جديدة
         if ($request->hasFile('media')) {
             $this->uploadMedia($request->file('media'), $product);
         }
@@ -320,7 +334,6 @@ class ProductController extends Controller
 
         $product->submitToQueue();
 
-        // ✅ إرسال إشعار لمديري التسويق
         $this->notifyReviewers(new ProductSubmittedForReview($product));
 
         return redirect()
@@ -349,7 +362,7 @@ class ProductController extends Controller
     }
 
     /**
-     * ✅ إرسال إشعار لجميع مديري التسويق
+     * إرسال إشعار لجميع مديري التسويق
      */
     private function notifyReviewers($notification): void
     {

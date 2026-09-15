@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\Comment;
 use App\Notifications\ProductApproved;
 use App\Notifications\ProductRejected;
 use Illuminate\Http\Request;
@@ -26,6 +27,16 @@ class ProductReviewController extends Controller
                 ->whereDate('reviewed_at', today())
                 ->count(),
             'my_history' => Product::where('reviewed_by', Auth::id())
+                ->whereNotNull('reviewed_at')
+                ->count(),
+
+            // ✅ إحصائيات التعليقات المعلقة (للمنتجات)
+            'pending_comments' => Comment::where('status', Comment::STATUS_PENDING)
+                ->where('commentable_type', Product::class)
+                ->count(),
+
+            // ✅ إحصائيات التعليقات التي راجعها المستخدم
+            'my_comment_reviews' => Comment::where('reviewed_by', Auth::id())
                 ->whereNotNull('reviewed_at')
                 ->count(),
         ];
@@ -151,7 +162,6 @@ class ProductReviewController extends Controller
 
     /**
      * دالة مساعدة لنشر المنتج
-     * تُرجع المنتج النهائي المنشور (بعد معالجة النسخ pending_edit)
      */
     private function publishProduct(Product $product): Product
     {
@@ -174,7 +184,6 @@ class ProductReviewController extends Controller
 
                 $original->categories()->sync($product->categories->pluck('id'));
 
-                // نسخ الوسائط من النسخة المؤقتة إلى المنتج الأصلي
                 foreach ($product->media as $media) {
                     $original->media()->create([
                         'media_type' => $media->media_type,
@@ -187,7 +196,6 @@ class ProductReviewController extends Controller
                     ]);
                 }
 
-                // حذف النسخة المؤقتة (بدون حذف الوسائط من Cloudinary لأنها منسوخة)
                 $product->media()->delete();
                 $product->delete();
 

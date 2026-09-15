@@ -2,6 +2,11 @@
     <form method="POST" action="{{ route('register') }}">
         @csrf
 
+        {{-- ✅ redirect_to (للعودة إلى الصفحة السابقة بعد إنشاء الحساب) --}}
+        @if(request('redirect_to'))
+            <input type="hidden" name="redirect_to" value="{{ request('redirect_to') }}">
+        @endif
+
         <!-- Name -->
         <div>
             <x-input-label for="name" :value="__('Name')" />
@@ -40,7 +45,9 @@
         </div>
 
         <div class="flex items-center justify-end mt-4">
-            <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('login') }}">
+            {{-- ✅ نقل redirect_to إلى رابط تسجيل الدخول --}}
+            <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+               href="{{ route('login', request('redirect_to') ? ['redirect_to' => request('redirect_to')] : []) }}">
                 {{ __('Already registered?') }}
             </a>
 

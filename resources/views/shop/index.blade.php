@@ -1,10 +1,11 @@
 <x-app-layout>
     <x-slot name="meta">
-    <x-meta-tags
-        title="المتجر الفلكلوري"
-        description="تصفح منتجات تراثية أصيلة: حرف يدوية، تحف، أزياء تقليدية."
-    />
-</x-slot>
+        <x-meta-tags
+            title="المتجر الفلكلوري"
+            description="تصفح منتجات تراثية أصيلة: حرف يدوية، تحف، أزياء تقليدية."
+        />
+    </x-slot>
+
     <x-slot name="header">
         <div class="flex justify-between items-center">
             <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
@@ -23,6 +24,29 @@
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+
+            {{-- ✅ رسائل التنبيه --}}
+            @if(session('success'))
+                <div class="mb-4 p-4 bg-green-100 dark:bg-green-900/50 border-l-4 border-green-500 text-green-700 dark:text-green-300 rounded-lg">
+                    ✓ {{ session('success') }}
+                </div>
+            @endif
+            @if(session('error'))
+                <div class="mb-4 p-4 bg-red-100 dark:bg-red-900/50 border-l-4 border-red-500 text-red-700 dark:text-red-300 rounded-lg">
+                    ✗ {{ session('error') }}
+                </div>
+            @endif
+            @if(session('info'))
+                <div class="mb-4 p-4 bg-blue-100 dark:bg-blue-900/50 border-l-4 border-blue-500 text-blue-700 dark:text-blue-300 rounded-lg">
+                    ℹ️ {{ session('info') }}
+                </div>
+            @endif
+            {{-- ✅ رسالة التحذير (الكمية محدودة) --}}
+            @if(session('warning'))
+                <div class="mb-4 p-4 bg-yellow-100 dark:bg-yellow-900/50 border-l-4 border-yellow-500 text-yellow-800 dark:text-yellow-200 rounded-lg">
+                    {{ session('warning') }}
+                </div>
+            @endif
 
             {{-- ✅ Hero Section --}}
             <div class="mb-8 p-8 bg-gradient-to-r from-amber-500 via-pink-500 to-purple-600 rounded-2xl shadow-xl text-white text-center relative overflow-hidden">
@@ -249,15 +273,29 @@
                                     @endif
                                 </div>
 
-                                {{-- الإعجابات + زر العرض --}}
-                                <div class="flex items-center justify-between">
+                                {{-- الإعجابات + الأزرار --}}
+                                <div class="flex items-center justify-between gap-2">
                                     <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                                         <span>❤️ {{ $product->likes()->count() }}</span>
                                     </div>
-                                    <a href="{{ route('shop.show', $product->slug) }}"
-                                       class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-full transition">
-                                        {{ __('عرض') }} →
-                                    </a>
+                                    <div class="flex items-center gap-2">
+                                        <a href="{{ route('shop.show', $product->slug) }}"
+                                           class="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs font-semibold rounded-full transition">
+                                            {{ __('عرض') }}
+                                        </a>
+                                        @auth
+                                            @if($product->isInStock() && $product->user_id !== auth()->id())
+                                                <form method="POST" action="{{ route('cart.add', $product) }}" class="inline">
+                                                    @csrf
+                                                    <button type="submit"
+                                                            class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-full transition flex items-center gap-1"
+                                                            title="{{ __('أضف إلى السلة') }}">
+                                                        🛒 {{ __('أضف') }}
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        @endauth
+                                    </div>
                                 </div>
                             </div>
                         </div>

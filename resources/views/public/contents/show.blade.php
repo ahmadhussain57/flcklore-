@@ -1,10 +1,15 @@
 <x-app-layout>
     <x-slot name="meta">
-    <x-meta-tags
-        title="المقالات والقصص الفلكلورية"
-        description="اقرأ أحدث المقالات والقصص الشعبية الموثقة من تراثنا العربي."
-    />
-</x-slot>
+        <x-meta-tags
+            title="{{ $content->title }}"
+            description="{{ Str::limit(strip_tags($content->body ?? $content->title), 160) }}"
+            :image="$content->media->where('media_type', 'image')->first()?->path"
+            type="article"
+            :published-at="$content->published_at"
+            :author="$content->author->name"
+        />
+    </x-slot>
+
     <x-slot name="header">
         <div class="flex justify-between items-center">
             <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
@@ -123,12 +128,19 @@
                         </div>
                     @endif
 
-                    {{-- معلومات إضافية --}}
+                    {{-- معلومات إضافية مع كلمات مفتاحية كروابط --}}
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl">
                         @if($content->keywords)
-                            <div>
-                                <span class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">{{ __('كلمات مفتاحية') }}</span>
-                                <p class="text-gray-800 dark:text-gray-200 mt-1">{{ $content->keywords }}</p>
+                            <div class="md:col-span-2">
+                                <span class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">🔍 {{ __('كلمات مفتاحية') }}</span>
+                                <div class="flex flex-wrap gap-2 mt-2">
+                                    @foreach(array_filter(array_map('trim', explode(',', $content->keywords))) as $keyword)
+                                        <a href="{{ route('articles.index', ['q' => $keyword]) }}"
+                                           class="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full text-sm hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition border border-indigo-200 dark:border-indigo-800">
+                                            🔍 {{ $keyword }}
+                                        </a>
+                                    @endforeach
+                                </div>
                             </div>
                         @endif
                         @if($content->geographic_location)
@@ -138,7 +150,7 @@
                             </div>
                         @endif
                         @if($content->historical_importance)
-                            <div class="md:col-span-2">
+                            <div class="{{ $content->geographic_location ? '' : 'md:col-span-2' }}">
                                 <span class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">{{ __('الأهمية التاريخية') }}</span>
                                 <p class="text-gray-800 dark:text-gray-200 mt-1">{{ $content->historical_importance }}</p>
                             </div>
@@ -155,14 +167,15 @@
                                 </a>
                             @endforeach
                             @foreach($content->tags as $tag)
-                                <span class="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full text-sm">
+                                <a href="{{ route('articles.index', ['q' => $tag->name]) }}"
+                                   class="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full text-sm hover:bg-gray-300 dark:hover:bg-gray-600 transition">
                                     #{{ $tag->name }}
-                                </span>
+                                </a>
                             @endforeach
                         </div>
                     @endif
 
-                    {{-- ✅ أزرار صاحب المحتوى (إذا كان المستخدم هو المؤلف) --}}
+                    {{-- أزرار صاحب المحتوى --}}
                     @auth
                         @if(auth()->id() === $content->user_id)
                             <div class="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded-lg">
@@ -194,7 +207,7 @@
                         @endif
                     @endauth
 
-                    {{-- ✅ الإعجابات والتعليقات --}}
+                    {{-- الإعجابات والتعليقات --}}
                     <div class="flex items-center gap-6 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
                         <div class="flex items-center gap-2">
                             @auth
@@ -224,15 +237,14 @@
                         </div>
 
                         <div class="text-sm text-gray-500 dark:text-gray-400">
-                            💬 {{ $content->comments()->count() }} {{ __('تعليق') }}
+                            💬 {{ $content->comments()->approved()->count() }} {{ __('تعليق') }}
                         </div>
                     </div>
 
-                    {{-- ✅ قسم التعليقات --}}
+                    {{-- قسم التعليقات --}}
                     <div class="mt-10 pt-6 border-t-2 border-dashed border-gray-200 dark:border-gray-700" id="comments">
                         <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">💬 {{ __('التعليقات') }}</h3>
 
-                        {{-- نموذج إضافة تعليق --}}
                         @auth
                             <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl">
                                 <form action="{{ route('articles.comment.store', $content->slug) }}" method="POST">
@@ -242,10 +254,13 @@
                                             {{ mb_substr(auth()->user()->name, 0, 2) }}
                                         </div>
                                         <div class="flex-1">
-                                            <textarea name="body" rows="2" placeholder="{{ __('اكتب تعليقك...') }}"
+                                            <textarea name="body" rows="2" placeholder="{{ __('اكتب تعليقك... سيُنشر بعد موافقة المدقق.') }}"
                                                       class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 resize-none">{{ old('body') }}</textarea>
                                             @error('body') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-                                            <div class="mt-2 flex justify-end">
+                                            <div class="mt-2 flex items-center justify-between">
+                                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                                    ℹ️ {{ __('سيظهر تعليقك بعد موافقة المدقق.') }}
+                                                </p>
                                                 <button type="submit" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-full shadow-sm transition">
                                                     {{ __('أضف تعليقاً') }}
                                                 </button>
@@ -256,25 +271,60 @@
                             </div>
                         @else
                             <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl text-center text-gray-600 dark:text-gray-400">
-                                <a href="{{ route('login') }}" class="text-indigo-600 dark:text-indigo-400 hover:underline font-semibold">{{ __('سجل الدخول') }}</a>
+                                <a href="{{ route('login', ['redirect_to' => url()->current()]) }}" class="text-indigo-600 dark:text-indigo-400 hover:underline font-semibold">{{ __('سجل الدخول') }}</a>
                                 {{ __('لتتمكن من التعليق والإعجاب.') }}
                             </div>
                         @endauth
 
-                        {{-- قائمة التعليقات --}}
-                        @if($content->comments->count())
+                        {{-- ✅ جلب التعليقات (approved + تعليقات المستخدم الحالي) --}}
+                        @php
+                            $approvedComments = $content->comments()->approved()->with('user')->latest()->get();
+
+                            // إضافة تعليقات المستخدم الحالي (pending + rejected)
+                            $myComments = collect();
+                            if (auth()->check()) {
+                                $myComments = $content->comments()
+                                    ->where('user_id', auth()->id())
+                                    ->whereIn('status', ['pending', 'rejected'])
+                                    ->with('user')
+                                    ->latest()
+                                    ->get();
+                            }
+
+                            // دمج + ترتيب حسب التاريخ
+                            $allComments = $approvedComments->concat($myComments)->sortByDesc('created_at');
+                        @endphp
+
+                        @if($allComments->count())
                             <div class="space-y-4">
-                                @foreach($content->comments->sortByDesc('created_at') as $comment)
-                                    <div class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-xl border border-gray-200 dark:border-gray-700">
+                                @foreach($allComments as $comment)
+                                    <div class="flex items-start gap-3 p-4 rounded-xl border
+                                        @if($comment->isPending()) bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700
+                                        @elseif($comment->isRejected()) bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700
+                                        @else bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700
+                                        @endif">
+
                                         <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold flex-shrink-0">
                                             {{ mb_substr($comment->user->name, 0, 2) }}
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <div class="flex flex-wrap items-center justify-between gap-2">
-                                                <div>
+                                                <div class="flex items-center gap-2 flex-wrap">
                                                     <span class="font-medium text-gray-800 dark:text-gray-200">{{ $comment->user->name }}</span>
-                                                    <span class="text-xs text-gray-500 dark:text-gray-400 mr-2">· {{ $comment->created_at->diffForHumans() }}</span>
+                                                    <span class="text-xs text-gray-500 dark:text-gray-400">· {{ $comment->created_at->diffForHumans() }}</span>
+
+                                                    {{-- ✅ شارة الحالة (للمستخدم فقط) --}}
+                                                    @if($comment->isPending())
+                                                        <span class="px-2 py-0.5 bg-yellow-200 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 text-xs font-semibold rounded-full">
+                                                            ⏳ {{ __('قيد المراجعة') }}
+                                                        </span>
+                                                    @elseif($comment->isRejected())
+                                                        <span class="px-2 py-0.5 bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200 text-xs font-semibold rounded-full">
+                                                            ❌ {{ __('مرفوض') }}
+                                                        </span>
+                                                    @endif
                                                 </div>
+
                                                 @auth
                                                     @if(auth()->id() === $comment->user_id || auth()->user()->hasPermissionTo('delete_any_content', 'web'))
                                                         <form action="{{ route('shop.comment.destroy', $comment) }}" method="POST" onsubmit="return confirm('{{ __('هل أنت متأكد من حذف هذا التعليق؟') }}')">
@@ -288,6 +338,14 @@
                                                 @endauth
                                             </div>
                                             <p class="mt-1 text-gray-700 dark:text-gray-300 break-words">{{ $comment->body }}</p>
+
+                                            {{-- ✅ سبب الرفض (يظهر لصاحب التعليق فقط) --}}
+                                            @if($comment->isRejected() && auth()->check() && auth()->id() === $comment->user_id)
+                                                <div class="mt-2 p-2 bg-red-100 dark:bg-red-900/30 rounded-lg text-xs text-red-700 dark:text-red-300">
+                                                    <strong>{{ __('سبب الرفض:') }}</strong>
+                                                    {{ $comment->rejection_reason ?? __('لم يُذكر سبب') }}
+                                                </div>
+                                            @endif
                                         </div>
                                     </div>
                                 @endforeach
@@ -302,7 +360,7 @@
                 </div>
             </div>
 
-            {{-- ✅ محتويات ذات صلة --}}
+            {{-- محتويات ذات صلة --}}
             @if($relatedContents->count())
                 <div class="mt-8">
                     <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">✨ {{ __('مقالات ذات صلة') }}</h2>

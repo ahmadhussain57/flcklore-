@@ -1,12 +1,13 @@
 <x-app-layout>
     <x-slot name="meta">
-    <x-meta-tags
-        :title="$product->title"
-        :description="$product->short_description ?? $product->title"
-        :image="$product->cover_image"
-        type="product"
-    />
-</x-slot>
+        <x-meta-tags
+            :title="$product->title"
+            :description="$product->short_description ?? $product->title"
+            :image="$product->cover_image"
+            type="product"
+        />
+    </x-slot>
+
     <x-slot name="header">
         <div class="flex justify-between items-center">
             <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
@@ -24,12 +25,22 @@
             {{-- ✅ رسائل التنبيه --}}
             @if(session('success'))
                 <div class="mb-4 p-4 bg-green-100 dark:bg-green-900/50 border-l-4 border-green-500 text-green-700 dark:text-green-300 rounded-lg">
-                    {{ session('success') }}
+                    ✓ {{ session('success') }}
                 </div>
             @endif
             @if(session('error'))
                 <div class="mb-4 p-4 bg-red-100 dark:bg-red-900/50 border-l-4 border-red-500 text-red-700 dark:text-red-300 rounded-lg">
-                    {{ session('error') }}
+                    ✗ {{ session('error') }}
+                </div>
+            @endif
+            @if(session('info'))
+                <div class="mb-4 p-4 bg-blue-100 dark:bg-blue-900/50 border-l-4 border-blue-500 text-blue-700 dark:text-blue-300 rounded-lg">
+                    ℹ️ {{ session('info') }}
+                </div>
+            @endif
+            @if(session('warning'))
+                <div class="mb-4 p-4 bg-yellow-100 dark:bg-yellow-900/50 border-l-4 border-yellow-500 text-yellow-800 dark:text-yellow-200 rounded-lg">
+                    {{ session('warning') }}
                 </div>
             @endif
 
@@ -42,14 +53,12 @@
                         @php $cover = $product->cover_image; @endphp
                         @if($product->media->count())
                             <div class="space-y-3">
-                                {{-- الصورة الرئيسية --}}
                                 @if($cover)
                                     <img src="{{ $cover }}" alt="{{ $product->title }}"
                                          id="main-image"
                                          class="w-full h-80 md:h-96 object-cover rounded-2xl shadow-lg">
                                 @endif
 
-                                {{-- الصور المصغرة --}}
                                 @if($product->media->where('media_type', 'image')->count() > 1)
                                     <div class="grid grid-cols-4 gap-2">
                                         @foreach($product->media->where('media_type', 'image') as $media)
@@ -116,16 +125,49 @@
                             @endif
                         </div>
 
-                        {{-- زر الإضافة للسلة (مؤقت) --}}
-                        <button type="button"
-                                class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md transition mb-4 flex items-center justify-center gap-2">
-                            🛒 {{ __('أضف إلى السلة') }}
-                            <span class="text-xs opacity-75">({{ __('قريباً') }})</span>
-                        </button>
+                        {{-- زر الإضافة للسلة --}}
+                        @auth
+                            @if($product->user_id === auth()->id())
+                                <div class="w-full py-3 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-semibold rounded-xl mb-4 text-center">
+                                    {{ __('هذا منتجك الخاص') }}
+                                </div>
+                            @elseif(!$product->isInStock())
+                                <button type="button" disabled
+                                        class="w-full py-3 bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 font-semibold rounded-xl mb-4 cursor-not-allowed">
+                                    ❌ {{ __('نفد المخزون') }}
+                                </button>
+                            @else
+                                <form method="POST" action="{{ route('cart.add', $product) }}" class="mb-4">
+                                    @csrf
+                                    <div class="flex gap-2">
+                                        <div class="flex items-center border border-gray-300 dark:border-gray-600 rounded-xl overflow-hidden bg-white dark:bg-gray-700">
+                                            <button type="button" onclick="this.nextElementSibling.stepDown()"
+                                                    class="px-3 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition">−</button>
+                                            <input type="number"
+                                                   name="quantity"
+                                                   value="1"
+                                                   min="1"
+                                                   max="{{ $product->isPhysical() ? $product->stock_quantity : 99 }}"
+                                                   class="w-16 text-center border-0 focus:ring-0 bg-transparent text-gray-800 dark:text-gray-200 font-semibold">
+                                            <button type="button" onclick="this.previousElementSibling.stepUp()"
+                                                    class="px-3 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition">+</button>
+                                        </div>
+                                        <button type="submit"
+                                                class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
+                                            🛒 {{ __('أضف إلى السلة') }}
+                                        </button>
+                                    </div>
+                                </form>
+                            @endif
+                        @else
+                            <a href="{{ route('login', ['redirect_to' => url()->current()]) }}"
+                               class="block w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md transition text-center mb-4">
+                                🔐 {{ __('سجّل الدخول للشراء') }}
+                            </a>
+                        @endauth
 
-                        {{-- ✅ الإعجاب والتعليقات --}}
+                        {{-- الإعجاب والتعليقات --}}
                         <div class="flex items-center gap-6 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                            {{-- زر الإعجاب --}}
                             <div class="flex items-center gap-2">
                                 @auth
                                     <form action="{{ route('shop.like.toggle', $product->slug) }}" method="POST" class="inline">
@@ -153,15 +195,10 @@
                                 @endauth
                             </div>
 
-                            {{-- عدد التعليقات --}}
                             <div class="text-sm text-gray-500 dark:text-gray-400">
-                                💬 {{ $product->comments()->count() }} {{ __('تعليق') }}
+                                💬 {{ $product->comments()->approved()->count() }} {{ __('تعليق') }}
                             </div>
                         </div>
-
-                        <p class="text-xs text-gray-500 dark:text-gray-400 text-center mt-4">
-                            {{ __('الدفع الإلكتروني سيكون متاحاً في المرحلة القادمة.') }}
-                        </p>
 
                     </div>
                 </div>
@@ -180,22 +217,37 @@
             {{-- التصنيفات --}}
             @if($product->categories->count())
                 <div class="mt-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
-                    <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase mb-3">{{ __('التصنيفات') }}</h3>
+                    <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase mb-3">🏷️ {{ __('التصنيفات') }}</h3>
                     <div class="flex flex-wrap gap-2">
                         @foreach($product->categories as $category)
-                            <span class="px-4 py-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 rounded-full text-sm">
-                                {{ $category->name }}
-                            </span>
+                            <a href="{{ route('shop.index', ['category' => $category->slug]) }}"
+                               class="px-4 py-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 rounded-full text-sm hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition">
+                                #{{ $category->name }}
+                            </a>
                         @endforeach
                     </div>
                 </div>
             @endif
 
-            {{-- ✅ قسم التعليقات --}}
+            {{-- الكلمات المفتاحية --}}
+            @if(!empty($product->keywords))
+                <div class="mt-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+                    <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase mb-3">🔍 {{ __('كلمات مفتاحية') }}</h3>
+                    <div class="flex flex-wrap gap-2">
+                        @foreach(array_filter(array_map('trim', explode(',', $product->keywords))) as $keyword)
+                            <a href="{{ route('shop.index', ['q' => $keyword]) }}"
+                               class="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full text-sm hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition border border-indigo-200 dark:border-indigo-800">
+                                🔍 {{ $keyword }}
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+            {{-- ✅ قسم التعليقات (معدّل) --}}
             <div class="mt-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 lg:p-8">
                 <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">💬 {{ __('التعليقات') }}</h3>
 
-                {{-- نموذج إضافة تعليق --}}
                 @auth
                     <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl">
                         <form action="{{ route('shop.comment.store', $product->slug) }}" method="POST">
@@ -213,25 +265,119 @@
                                             {{ __('أضف تعليقاً') }}
                                         </button>
                                     </div>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                        ℹ️ {{ __('تم إرسال تعليقك. سيظهر بعد موافقة المدقق.') }}
+                                    </p>
                                 </div>
                             </div>
                         </form>
                     </div>
                 @else
                     <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl text-center text-gray-600 dark:text-gray-400">
-                        <a href="{{ route('login') }}" class="text-indigo-600 dark:text-indigo-400 hover:underline">{{ __('سجل الدخول') }}</a>
+                        <a href="{{ route('login', ['redirect_to' => url()->current()]) }}" class="text-indigo-600 dark:text-indigo-400 hover:underline">{{ __('سجل الدخول') }}</a>
                         {{ __('لتتمكن من التعليق والإعجاب.') }}
                     </div>
                 @endauth
 
-                {{-- قائمة التعليقات --}}
                 @php
-                    $comments = $product->comments()->with('user')->latest()->get();
+                    // ✅ عرض التعليقات:
+                    // - approved: للجميع (عبر Scope)
+                    // - pending/rejected: للمستخدم صاحب التعليق فقط (عبر Scopes)
+                    $approvedComments = $product->comments()
+                        ->approved()
+                        ->with('user')
+                        ->latest()
+                        ->get();
+
+                    $myPendingComments = collect();
+                    $myRejectedComments = collect();
+
+                    if (auth()->check()) {
+                        $myPendingComments = $product->comments()
+                            ->where('user_id', auth()->id())
+                            ->pending()
+                            ->with('user')
+                            ->latest()
+                            ->get();
+
+                        $myRejectedComments = $product->comments()
+                            ->where('user_id', auth()->id())
+                            ->rejected()
+                            ->with('user')
+                            ->latest()
+                            ->get();
+                    }
                 @endphp
 
-                @if($comments->count())
+                @if($approvedComments->count() || $myPendingComments->count() || $myRejectedComments->count())
                     <div class="space-y-4">
-                        @foreach($comments as $comment)
+
+                        {{-- ✅ تعليقاتي المعلقة (تظهر لي فقط) --}}
+                        @foreach($myPendingComments as $comment)
+                            <div class="flex items-start gap-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border-2 border-yellow-300 dark:border-yellow-700">
+                                <div class="w-10 h-10 rounded-full bg-yellow-200 dark:bg-yellow-800 flex items-center justify-center text-yellow-800 dark:text-yellow-200 font-bold flex-shrink-0">
+                                    {{ mb_substr($comment->user->name, 0, 2) }}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex flex-wrap items-center justify-between gap-2">
+                                        <div>
+                                            <span class="font-medium text-gray-800 dark:text-gray-200">{{ $comment->user->name }}</span>
+                                            <span class="text-xs text-gray-500 dark:text-gray-400 mr-2">· {{ $comment->created_at->diffForHumans() }}</span>
+                                            <span class="px-2 py-0.5 bg-yellow-200 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 text-xs font-bold rounded-full">
+                                                ⏳ {{ __('قيد المراجعة') }}
+                                            </span>
+                                        </div>
+                                        <form action="{{ route('shop.comment.destroy', $comment) }}" method="POST" onsubmit="return confirm('{{ __('هل أنت متأكد من حذف هذا التعليق؟') }}')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 text-xs transition">
+                                                {{ __('حذف') }}
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <p class="mt-1 text-gray-700 dark:text-gray-300 break-words">{{ $comment->body }}</p>
+                                    <p class="mt-2 text-xs text-yellow-700 dark:text-yellow-300">
+                                        ℹ️ {{ __('تم إرسال تعليقك. سيظهر بعد موافقة المدقق.') }}
+                                    </p>
+                                </div>
+                            </div>
+                        @endforeach
+
+                        {{-- ✅ تعليقاتي المرفوضة (تظهر لي فقط) --}}
+                        @foreach($myRejectedComments as $comment)
+                            <div class="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border-2 border-red-300 dark:border-red-700">
+                                <div class="w-10 h-10 rounded-full bg-red-200 dark:bg-red-800 flex items-center justify-center text-red-800 dark:text-red-200 font-bold flex-shrink-0">
+                                    {{ mb_substr($comment->user->name, 0, 2) }}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex flex-wrap items-center justify-between gap-2">
+                                        <div>
+                                            <span class="font-medium text-gray-800 dark:text-gray-200">{{ $comment->user->name }}</span>
+                                            <span class="text-xs text-gray-500 dark:text-gray-400 mr-2">· {{ $comment->created_at->diffForHumans() }}</span>
+                                            <span class="px-2 py-0.5 bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200 text-xs font-bold rounded-full">
+                                                ❌ {{ __('مرفوض') }}
+                                            </span>
+                                        </div>
+                                        <form action="{{ route('shop.comment.destroy', $comment) }}" method="POST" onsubmit="return confirm('{{ __('هل أنت متأكد من حذف هذا التعليق؟') }}')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 text-xs transition">
+                                                {{ __('حذف') }}
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <p class="mt-1 text-gray-700 dark:text-gray-300 break-words">{{ $comment->body }}</p>
+                                    @if($comment->rejection_reason)
+                                        <p class="mt-2 text-xs text-red-700 dark:text-red-300">
+                                            ⚠️ {{ __('سبب الرفض:') }} {{ $comment->rejection_reason }}
+                                        </p>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+
+                        {{-- ✅ التعليقات الموافق عليها (للجميع) --}}
+                        @foreach($approvedComments as $comment)
                             <div class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-xl border border-gray-200 dark:border-gray-700">
                                 <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold flex-shrink-0">
                                     {{ mb_substr($comment->user->name, 0, 2) }}

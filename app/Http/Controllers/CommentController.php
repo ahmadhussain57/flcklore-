@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Content;
 use App\Models\Product;
 use App\Models\Comment;
+use App\Models\User;
+use App\Notifications\NewCommentPending;
 use App\Notifications\NewCommentOnContent;
 use App\Notifications\NewCommentOnProduct;
 use Illuminate\Http\Request;
@@ -50,6 +52,10 @@ class CommentController extends Controller
 
         $request->validate([
             'body' => 'required|string|min:2|max:1000',
+        ], [
+            'body.required' => 'لا يمكن إرسال تعليق فارغ.',
+            'body.min'      => 'التعليق قصير جداً (حرفين على الأقل).',
+            'body.max'      => 'التعليق طويل جداً (الحد 1000 حرف).',
         ]);
 
         // التحقق من أن العنصر منشور
@@ -60,38 +66,47 @@ class CommentController extends Controller
             return back()->with('error', $message);
         }
 
-        // إنشاء التعليق
+        // ✅ إنشاء التعليق بحالة pending
         $comment = Comment::create([
-            'user_id' => Auth::id(),
-            'body' => $request->body,
+            'user_id'          => Auth::id(),
+            'body'             => $request->body,
             'commentable_type' => get_class($model),
-            'commentable_id' => $model->id,
+            'commentable_id'   => $model->id,
+            'status'           => Comment::STATUS_PENDING,  // ✅ جديد
         ]);
 
-        // ✅ إرسال إشعار لصاحب المحتوى/المنتج (إذا لم يكن هو المعلّق نفسه)
-        $this->notifyOwner($model, $comment, $type);
+        // ✅ إرسال إشعار للمدققين المناسبين حسب النوع
+        $this->notifyReviewers($comment, $model, $type);
 
-        return back()->with('success', 'تم إضافة تعليقك بنجاح!');
+        return back()->with('success', 'تم إرسال تعليقك بنجاح! سيظهر بعد موافقة المدقق.');
     }
 
     /**
-     * إرسال إشعار لصاحب المحتوى/المنتج
+     * ✅ إرسال إشعار للمدققين المناسبين حسب نوع التعليق
      */
-    private function notifyOwner($model, Comment $comment, string $type): void
+    private function notifyReviewers(Comment $comment, $model, string $type): void
     {
-        // جلب صاحب المحتوى/المنتج
-        $owner = $model->author;
-
-        // لا نرسل إشعاراً إذا كان صاحب المحتوى هو نفسه من علّق
-        if (!$owner || $owner->id === Auth::id()) {
+        // تحديد الأدوار المستهدفة
+        if ($type === 'content') {
+            $targetRoles = ['content_admin', 'content_Reviewer'];
+        } elseif ($type === 'product') {
+            $targetRoles = ['marketing_admin'];
+        } else {
             return;
         }
 
-        // إرسال الإشعار المناسب حسب النوع
-        if ($type === 'content') {
-            $owner->notify(new NewCommentOnContent($model, $comment));
-        } elseif ($type === 'product') {
-            $owner->notify(new NewCommentOnProduct($model, $comment));
+        // جلب المستخدمين الذين لديهم الصلاحية
+        $reviewers = User::whereHas('roles', function ($q) use ($targetRoles) {
+            $q->whereIn('name', $targetRoles);
+        })->get();
+
+        // إرسال الإشعار لكل مدقق (مع استثناء صاحب التعليق نفسه)
+        foreach ($reviewers as $reviewer) {
+            if ($reviewer->id === Auth::id()) {
+                continue;
+            }
+
+            $reviewer->notify(new NewCommentPending($comment, $model, $type));
         }
     }
 

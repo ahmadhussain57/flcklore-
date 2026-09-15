@@ -11,14 +11,14 @@ class PermissionSeeder extends Seeder
     public function run(): void
     {
         // ==========================================
-        // 1. صلاحيات طلبات الترقية
+        // 1. صلاحيات طلب الترقية
         // ==========================================
         $upgradePermissions = [
             'approve_role_upgrade',
         ];
 
         // ==========================================
-        // 2. صلاحيات نظام المحتوى
+        // 2. صلاحيات المحتوى
         // ==========================================
         $contentPermissions = [
             'create_content',
@@ -36,7 +36,7 @@ class PermissionSeeder extends Seeder
         ];
 
         // ==========================================
-        // 3. صلاحيات التفاعل (تعليقات وإعجابات)
+        // 3. صلاحيات التفاعل
         // ==========================================
         $interactionPermissions = [
             'comment_on_content',
@@ -45,30 +45,44 @@ class PermissionSeeder extends Seeder
         ];
 
         // ==========================================
-        // 4. صلاحيات المنتجات التسويقية (جديدة)
+        // 4. ✅ صلاحيات مراجعة التعليقات (جديدة)
+        // ==========================================
+        $commentReviewPermissions = [
+            'review_comment',
+            'approve_comment',
+            'reject_comment',
+        ];
+
+        // ==========================================
+        // 5. صلاحيات المنتجات
         // ==========================================
         $productPermissions = [
-            // CRUD
             'create_product',
             'edit_own_product',
             'edit_any_product',
             'delete_own_product',
             'delete_any_product',
             'submit_product_for_review',
-
-            // المراجعة
             'review_product',
             'approve_product',
             'reject_product',
             'publish_product',
-
-            // الإدارة
             'manage_product_categories',
             'manage_inventory',
         ];
 
         // ==========================================
-        // 5. صلاحيات التسويق (محاسبة/تقارير - لاحقاً)
+        // 6. صلاحيات المحاسبة
+        // ==========================================
+        $accountingPermissions = [
+            'view_accounting',
+            'manage_journal_entries',
+            'manage_invoices',
+            'manage_accounts',
+        ];
+
+        // ==========================================
+        // 7. صلاحيات التسويق العامة
         // ==========================================
         $marketingPermissions = [
             'view_reports',
@@ -76,25 +90,27 @@ class PermissionSeeder extends Seeder
             'manage_budget',
         ];
 
-        // دمج جميع الصلاحيات
+        // دمج كل الصلاحيات
         $allPermissions = array_merge(
             $upgradePermissions,
             $contentPermissions,
             $interactionPermissions,
+            $commentReviewPermissions,  // ✅ جديد
             $productPermissions,
+            $accountingPermissions,
             $marketingPermissions
         );
 
-        // إنشاء كل صلاحية إذا لم تكن موجودة
+        // إنشاء الصلاحيات
         foreach ($allPermissions as $perm) {
             Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
         }
 
         // ==========================================
-        // 6. توزيع الصلاحيات على أدوار المحتوى
+        // 8. توزيع الصلاحيات على أدوار المحتوى
         // ==========================================
 
-        // 6.1 مدير المحتوى (كل صلاحيات المحتوى والتفاعل)
+        // مدير المحتوى
         $contentAdmin = Role::where('name', 'content_admin')->first();
         if ($contentAdmin) {
             $contentAdmin->syncPermissions([
@@ -105,10 +121,11 @@ class PermissionSeeder extends Seeder
                 'review_content', 'approve_content', 'reject_content', 'publish_content',
                 'manage_categories', 'manage_tags',
                 'comment_on_content', 'like_content', 'delete_own_comment',
+                'review_comment', 'approve_comment', 'reject_comment',  // ✅ جديد
             ]);
         }
 
-        // 6.2 مدقق المحتوى
+        // مدقق المحتوى
         $contentReviewer = Role::where('name', 'content_Reviewer')->first();
         if ($contentReviewer) {
             $contentReviewer->syncPermissions([
@@ -116,10 +133,11 @@ class PermissionSeeder extends Seeder
                 'manage_categories', 'manage_tags',
                 'edit_any_content', 'delete_any_content',
                 'comment_on_content', 'like_content', 'delete_own_comment',
+                'review_comment', 'approve_comment', 'reject_comment',  // ✅ جديد
             ]);
         }
 
-        // 6.3 مؤلف المحتوى
+        // مؤلف المحتوى
         $contentAuthor = Role::where('name', 'content_author')->first();
         if ($contentAuthor) {
             $contentAuthor->syncPermissions([
@@ -129,7 +147,7 @@ class PermissionSeeder extends Seeder
             ]);
         }
 
-        // 6.4 ضيف المحتوى
+        // ضيف المحتوى
         $contentGuest = Role::where('name', 'content_Guest')->first();
         if ($contentGuest) {
             $contentGuest->syncPermissions([
@@ -138,10 +156,10 @@ class PermissionSeeder extends Seeder
         }
 
         // ==========================================
-        // 7. توزيع الصلاحيات على أدوار التسويق
+        // 9. توزيع الصلاحيات على أدوار التسويق
         // ==========================================
 
-        // 7.1 مدير التسويق (كل صلاحيات المنتجات + التسويق)
+        // مدير التسويق (كل شيء + المحاسبة + مراجعة تعليقات المنتجات)
         $marketingAdmin = Role::where('name', 'marketing_admin')->first();
         if ($marketingAdmin) {
             $marketingAdmin->syncPermissions([
@@ -150,11 +168,13 @@ class PermissionSeeder extends Seeder
                 'submit_product_for_review',
                 'review_product', 'approve_product', 'reject_product', 'publish_product',
                 'manage_product_categories', 'manage_inventory',
+                'view_accounting', 'manage_journal_entries', 'manage_invoices', 'manage_accounts',
                 'view_reports', 'manage_campaigns', 'manage_budget',
+                'review_comment', 'approve_comment', 'reject_comment',  // ✅ جديد
             ]);
         }
 
-        // 7.2 متخصص التسويق (إنشاء المنتجات وتقديمها)
+        // متخصص التسويق
         $marketingSpecialist = Role::where('name', 'marketing_Specialist')->first();
         if ($marketingSpecialist) {
             $marketingSpecialist->syncPermissions([
@@ -164,16 +184,14 @@ class PermissionSeeder extends Seeder
             ]);
         }
 
-        // 7.3 محاسب التسويق (يرى التقارير فقط حالياً)
+        // محاسب التسويق (المحاسبة فقط)
         $marketingAccountant = Role::where('name', 'marketing_Accountant')->first();
         if ($marketingAccountant) {
             $marketingAccountant->syncPermissions([
+                'view_accounting', 'manage_journal_entries', 'manage_invoices',
                 'view_reports', 'manage_budget',
             ]);
         }
-
-        // 7.4 ضيف التسويق (لا صلاحيات إدارية)
-        // لا شيء
 
         $this->command->info('✅ تم إنشاء وتوزيع جميع الصلاحيات بنجاح!');
     }

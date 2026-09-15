@@ -13,21 +13,37 @@ class HomeController extends Controller
 {
     public function index()
     {
-        // آخر 6 محتويات منشورة
-        $latestContents = Content::published()
-            ->with(['author', 'categories', 'media', 'likes', 'comments'])
-            ->latest('published_at')
-            ->limit(6)
-            ->get();
-
-        // آخر 4 منتجات منشورة
+        // ✅ أحدث المنتجات (4)
         $latestProducts = Product::published()
             ->with(['categories', 'media'])
+            ->withCount(['likes', 'comments'])
             ->latest('published_at')
             ->limit(4)
-            ->get();
+            ->get()
+            ->map(function ($item) {
+                $item->item_type = 'product';
+                return $item;
+            });
 
-        // التصنيفات (المحتوى) - التي تحتوي على محتوى منشور واحد على الأقل
+        // ✅ أحدث المحتوى الرقمي (4)
+        $latestContents = Content::published()
+            ->with(['author', 'categories', 'media'])
+            ->withCount(['likes', 'comments'])
+            ->latest('published_at')
+            ->limit(4)
+            ->get()
+            ->map(function ($item) {
+                $item->item_type = 'content';
+                return $item;
+            });
+
+        // ✅ الأكثر مشاركة (4 - مختلط: منتجات + محتويات)
+        $mostCommented = $this->getMixedItems('comments');
+
+        // ✅ الأعلى تقييماً (4 - مختلط: منتجات + محتويات)
+        $mostLiked = $this->getMixedItems('likes');
+
+        // التصنيفات (المحتوى)
         $contentCategories = Category::whereHas('contents', function ($q) {
                 $q->where('status', Content::STATUS_PUBLISHED);
             })
@@ -37,7 +53,7 @@ class HomeController extends Controller
             ->limit(6)
             ->get();
 
-        // التصنيفات (المنتجات) - التي تحتوي على منتج منشور واحد على الأقل
+        // التصنيفات (المنتجات)
         $productCategories = ProductCategory::whereHas('products', function ($q) {
                 $q->where('status', Product::STATUS_PUBLISHED);
             })
@@ -60,9 +76,53 @@ class HomeController extends Controller
         return view('home', compact(
             'latestContents',
             'latestProducts',
+            'mostCommented',
+            'mostLiked',
             'contentCategories',
             'productCategories',
             'stats'
         ));
+    }
+
+    /**
+     * ✅ جلب العناصر المختلطة (منتجات + محتويات) الأكثر تعليقاً أو إعجاباً
+     *
+     * @param string $type 'comments' | 'likes'
+     */
+    private function getMixedItems(string $type)
+    {
+        $countField = $type === 'comments' ? 'comments_count' : 'likes_count';
+
+        // المحتوى الرقمي
+        $contents = Content::published()
+            ->has($type)
+            ->withCount($type)
+            ->with(['author', 'media', 'categories'])
+            ->orderByDesc($countField)
+            ->limit(4)
+            ->get()
+            ->map(function ($item) {
+                $item->item_type = 'content';
+                return $item;
+            });
+
+        // المنتجات
+        $products = Product::published()
+            ->has($type)
+            ->withCount($type)
+            ->with(['media', 'categories'])
+            ->orderByDesc($countField)
+            ->limit(4)
+            ->get()
+            ->map(function ($item) {
+                $item->item_type = 'product';
+                return $item;
+            });
+
+        // دمج + ترتيب + أخذ أعلى 4
+        return $contents->concat($products)
+            ->sortByDesc($countField)
+            ->take(4)
+            ->values();
     }
 }

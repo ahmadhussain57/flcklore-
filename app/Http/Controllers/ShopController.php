@@ -50,13 +50,14 @@ class ShopController extends Controller
             });
         }
 
-        // ✅ بحث في العنوان/الوصف
+               // ✅ بحث في العنوان/الوصف/الكلمات المفتاحية
         if ($request->filled('q')) {
             $search = $request->input('q');
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
                   ->orWhere('short_description', 'like', "%{$search}%")
                   ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('keywords', 'like', "%{$search}%")
                   ->orWhere('sku', 'like', "%{$search}%");
             });
         }
