@@ -1,58 +1,135 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🏺 منصة الفلكلور (Folklore Platform)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+منصة رقمية متكاملة تجمع **التراث والقصص الشعبية والحرف اليدوية**، تتيح للمستخدمين استكشاف المحتوى الثقافي وشراء المنتجات الفلكلورية، مع نظام إدارة متقدم للمحتوى والمنتجات والمحاسبة.
 
-## About Laravel
+> هذا المشروع هو **المشروع النهائي** في مقرر تطوير الويب.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## ✨ الميزات الرئيسية
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### للعامة
+- تصفح المقالات والقصص والمحتوى الرقمي (صور، فيديو، صوت)
+- متجر للمنتجات الفلكلورية (منتجات فيزيائية ورقمية)
+- سلة مشتريات وطلبات
+- نظام تعليقات وإعجابات
+- دعم كامل للغة العربية + الإنجليزية (RTL)
+- الوضع الداكن (Dark Mode)
 
-## Learning Laravel
+### للمؤلفين ومدققي المحتوى
+- إنشاء وإدارة المحتوى
+- نظام مراجعة واعتماد المحتوى
+- مراجعة التعليقات
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### لفريق التسويق
+- إدارة المنتجات والتصنيفات
+- مراجعة المنتجات والتعليقات
+- إدارة الطلبات
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### للمحاسبة
+- سندات القيد
+- الفواتير
+- أرصدة الحسابات
+- التقارير المالية
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+### ميزات إضافية
+- نظام أدوار وصلاحيات متقدم (Spatie Permission)
+- طلبات ترقية الأدوار
+- نظام رسائل ومحادثات
+- إشعارات فورية
+- رفع الصور عبر Cloudinary
+- تصدير Excel و PDF
 
-## Agentic Development
+---
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## 🛠️ التقنيات المستخدمة
+
+| التقنية              | الاستخدام                  |
+|----------------------|---------------------------|
+| **Laravel 13**       | إطار العمل الأساسي        |
+| **Tailwind CSS**     | تصميم الواجهات            |
+| **Alpine.js**        | التفاعلات في الواجهة      |
+| **Spatie Permission**| نظام الأدوار والصلاحيات   |
+| **Cloudinary**       | تخزين الوسائط             |
+| **DomPDF**           | إنشاء ملفات PDF           |
+| **Maatwebsite Excel**| تصدير واستيراد Excel      |
+| **Laravel Breeze**   | المصادقة الأساسية         |
+
+---
+
+## 👥 الأدوار في النظام
+
+| الدور                    | الصلاحيات الرئيسية                              |
+|--------------------------|------------------------------------------------|
+| `content_author`         | إنشاء وإدارة محتواه الخاص                      |
+| `content_Reviewer`       | مراجعة واعتماد المحتوى والتعليقات              |
+| `content_admin`          | إدارة كاملة لقسم المحتوى                       |
+| `marketing_Specialist`   | إدارة المنتجات                                 |
+| `marketing_Accountant`   | إدارة الطلبات والمحاسبة                        |
+| `marketing_admin`        | إدارة كاملة لقسم التسويق والمحاسبة             |
+
+---
+
+## 🚀 طريقة التشغيل
+
+### المتطلبات
+- PHP >= 8.3
+- Composer
+- Node.js & NPM
+- قاعدة بيانات (MySQL / SQLite)
+
+### خطوات التثبيت
 
 ```bash
-composer require laravel/boost --dev
+# 1. استنساخ المشروع
+git clone https://github.com/ahmadhussain57/flcklore-.git
+cd flcklore-
 
-php artisan boost:install
-```
+# 2. تثبيت حزم PHP
+composer install
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+# 3. نسخ ملف البيئة
+cp .env.example .env
 
-## Contributing
+# 4. توليد مفتاح التطبيق
+php artisan key:generate
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+# 5. إعداد قاعدة البيانات في ملف .env ثم تشغيل الهجرات
+php artisan migrate --seed
 
-## Code of Conduct
+# 6. تثبيت حزم الواجهة
+npm install
+npm run build
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+# 7. تشغيل المشروع
+php artisan serve
 
-## Security Vulnerabilities
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+ثم افتح المتصفح على: http://localhost:8000
 
-## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+
+
+app/
+├── Http/Controllers/     # المتحكمات
+├── Models/               # النماذج
+├── Services/             # الخدمات
+└── ...
+resources/
+├── views/                # واجهات Blade
+│   ├── layouts/
+│   ├── home/
+│   ├── shop/
+│   ├── content/
+│   └── ...
+routes/
+└── web.php               # المسارات الرئيسية
+
+
+
+
+
+Ahmad Hussain
+
+مشروع تخرج - دورة تطوير الويب
